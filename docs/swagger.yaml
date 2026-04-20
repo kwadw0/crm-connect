@@ -1,0 +1,509 @@
+basePath: /
+definitions:
+  auth.LoginUserDto:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.RegisterUserDto:
+    properties:
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    type: object
+  organizations.CreateOrganizationDto:
+    properties:
+      description:
+        type: string
+      industry:
+        type: string
+      name:
+        type: string
+      owner_role:
+        type: string
+      primary_customer_type:
+        type: string
+      primary_use_case:
+        type: string
+      referral_source:
+        type: string
+      team_size:
+        type: string
+      website_url:
+        type: string
+    required:
+    - description
+    - industry
+    - name
+    - owner_role
+    - primary_customer_type
+    - primary_use_case
+    - team_size
+    type: object
+  organizations.OrganizationResponseDto:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      industry:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      owner_role:
+        type: string
+      primary_customer_type:
+        type: string
+      primary_use_case:
+        type: string
+      referral_source:
+        type: string
+      team_size:
+        type: string
+      updated_at:
+        type: string
+      website_url:
+        type: string
+    type: object
+  organizations.UpdateOrganizationDto:
+    properties:
+      description:
+        type: string
+      industry:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      owner_role:
+        type: string
+      primary_customer_type:
+        type: string
+      primary_use_case:
+        type: string
+      referral_source:
+        type: string
+      team_size:
+        type: string
+      website_url:
+        type: string
+    type: object
+  users.CreateUserDto:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - password
+    - phone
+    - role
+    type: object
+  users.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+    type: object
+  users.UpdateUserDto:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+    type: object
+  users.UserResponseDto:
+    properties:
+      access_token:
+        type: string
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: string
+      last_name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  utils.JsonResponse:
+    properties:
+      data: {}
+      error: {}
+      message:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: The WhatsCRM API
+  title: WhatsCRM API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.LoginResponse'
+              type: object
+      summary: Login an existing user
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterUserDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /organizations:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  items:
+                    $ref: '#/definitions/organizations.OrganizationResponseDto'
+                  type: array
+              type: object
+      summary: List all organizations
+      tags:
+      - Organizations
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Organization creation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/organizations.CreateOrganizationDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/organizations.OrganizationResponseDto'
+              type: object
+      summary: Create a new organization
+      tags:
+      - Organizations
+  /organizations/{id}:
+    delete:
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/organizations.OrganizationResponseDto'
+              type: object
+      summary: Delete organization by ID
+      tags:
+      - Organizations
+    get:
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/organizations.OrganizationResponseDto'
+              type: object
+      summary: Get organization by ID
+      tags:
+      - Organizations
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Organization ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/organizations.UpdateOrganizationDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/organizations.OrganizationResponseDto'
+              type: object
+      summary: Update organization by ID
+      tags:
+      - Organizations
+  /organizations/current:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/organizations.OrganizationResponseDto'
+              type: object
+      summary: Get current user's organization
+      tags:
+      - Organizations
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  items:
+                    $ref: '#/definitions/users.UserResponseDto'
+                  type: array
+              type: object
+      summary: List all users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.CreateUserDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Create a user
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Delete a user
+      tags:
+      - Users
+    get:
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Get a user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: User UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.UpdateUserDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Update an existing user
+      tags:
+      - Users
+swagger: "2.0"
