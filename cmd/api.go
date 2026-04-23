@@ -4,6 +4,7 @@ import (
 	"kwadw0/WhatsCRM/auth"
 	"kwadw0/WhatsCRM/internal/postgres/repo"
 	"kwadw0/WhatsCRM/organizations"
+	"kwadw0/WhatsCRM/roles"
 	"kwadw0/WhatsCRM/users"
 	"log/slog"
 	"net/http"
@@ -51,11 +52,21 @@ func (app *application) mount () http.Handler {
 		r.Delete("/{id}", userHandler.DeleteUser)
 	})
 
-	authService := auth.NewService(repo.New(app.db), []byte(app.config.jwtSecret), app.config.tokenTTL)
-	authHandler := auth.AuthHandler(authService)
+	authService := auth.NewService(repo.New(app.db),  []byte(app.config.jwtSecret), app.config.tokenTTL)
+	authHandler := auth.AuthHandler(authService, app.validator)
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.RegisterUser)
 		r.Post("/login", authHandler.LoginUser)
+	})
+
+	roleService := roles.NewService(repo.New(app.db))
+	roleHandler := roles.NewHandler(roleService, app.validator)
+	r.Route("/roles", func(r chi.Router) {
+		r.Post("/", roleHandler.CreateRole)
+		r.Get("/", roleHandler.GetAllRoles)
+		r.Get("/{id}", roleHandler.GetRoleByID)
+		r.Put("/{id}", roleHandler.UpdateRole)
+		r.Delete("/{id}", roleHandler.DeleteRole)
 	})
 
 	// --- PROTECTED ROUTES (Requires AuthMiddleware) ---

@@ -5,36 +5,164 @@
 package repo
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ChannelPlatform string
+
+const (
+	ChannelPlatformWhatsapp  ChannelPlatform = "whatsapp"
+	ChannelPlatformTelegram  ChannelPlatform = "telegram"
+	ChannelPlatformInstagram ChannelPlatform = "instagram"
+	ChannelPlatformFacebook  ChannelPlatform = "facebook"
+	ChannelPlatformTwitter   ChannelPlatform = "twitter"
+	ChannelPlatformLinkedin  ChannelPlatform = "linkedin"
+	ChannelPlatformEmail     ChannelPlatform = "email"
+	ChannelPlatformSms       ChannelPlatform = "sms"
+	ChannelPlatformOther     ChannelPlatform = "other"
+)
+
+func (e *ChannelPlatform) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChannelPlatform(s)
+	case string:
+		*e = ChannelPlatform(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChannelPlatform: %T", src)
+	}
+	return nil
+}
+
+type NullChannelPlatform struct {
+	ChannelPlatform ChannelPlatform `json:"channel_platform"`
+	Valid           bool            `json:"valid"` // Valid is true if ChannelPlatform is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChannelPlatform) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChannelPlatform, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChannelPlatform.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChannelPlatform) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChannelPlatform), nil
+}
+
+type ChannelStatus string
+
+const (
+	ChannelStatusActive       ChannelStatus = "active"
+	ChannelStatusInactive     ChannelStatus = "inactive"
+	ChannelStatusSuspended    ChannelStatus = "suspended"
+	ChannelStatusPending      ChannelStatus = "pending"
+	ChannelStatusDisconnected ChannelStatus = "disconnected"
+)
+
+func (e *ChannelStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChannelStatus(s)
+	case string:
+		*e = ChannelStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChannelStatus: %T", src)
+	}
+	return nil
+}
+
+type NullChannelStatus struct {
+	ChannelStatus ChannelStatus `json:"channel_status"`
+	Valid         bool          `json:"valid"` // Valid is true if ChannelStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChannelStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChannelStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChannelStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChannelStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChannelStatus), nil
+}
+
+type Channel struct {
+	ID              uuid.UUID          `json:"id"`
+	OrganizationID  uuid.UUID          `json:"organization_id"`
+	Name            string             `json:"name"`
+	Description     pgtype.Text        `json:"description"`
+	ChannelPlatform ChannelPlatform    `json:"channel_platform"`
+	AvatarUrl       pgtype.Text        `json:"avatar_url"`
+	Status          ChannelStatus      `json:"status"`
+	StatusReason    pgtype.Text        `json:"status_reason"`
+	AuthConfig      []byte             `json:"auth_config"`
+	PlatformConfig  []byte             `json:"platform_config"`
+	Capabilities    []byte             `json:"capabilities"`
+	WebhookVerified bool               `json:"webhook_verified"`
+	WebhookUrl      pgtype.Text        `json:"webhook_url"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Organization struct {
-	ID                  uuid.UUID        `json:"id"`
-	Name                string           `json:"name"`
-	Description         pgtype.Text      `json:"description"`
-	WebsiteUrl          pgtype.Text      `json:"website_url"`
-	Industry            pgtype.Text      `json:"industry"`
-	TeamSize            pgtype.Text      `json:"team_size"`
-	PrimaryCustomerType pgtype.Text      `json:"primary_customer_type"`
-	PrimaryUseCase      string           `json:"primary_use_case"`
-	OwnerRole           string           `json:"owner_role"`
-	ReferralSource      pgtype.Text      `json:"referral_source"`
-	IsActive            pgtype.Bool      `json:"is_active"`
-	CreatedAt           pgtype.Timestamp `json:"created_at"`
-	UpdatedAt           pgtype.Timestamp `json:"updated_at"`
+	ID                  uuid.UUID          `json:"id"`
+	Name                string             `json:"name"`
+	Description         pgtype.Text        `json:"description"`
+	WebsiteUrl          pgtype.Text        `json:"website_url"`
+	Industry            pgtype.Text        `json:"industry"`
+	TeamSize            pgtype.Text        `json:"team_size"`
+	PrimaryCustomerType pgtype.Text        `json:"primary_customer_type"`
+	PrimaryUseCase      string             `json:"primary_use_case"`
+	OwnerRole           string             `json:"owner_role"`
+	ReferralSource      pgtype.Text        `json:"referral_source"`
+	IsActive            bool               `json:"is_active"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Role struct {
+	ID          uuid.UUID          `json:"id"`
+	Name        string             `json:"name"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
-	ID             uuid.UUID        `json:"id"`
-	FirstName      string           `json:"first_name"`
-	LastName       string           `json:"last_name"`
-	Email          string           `json:"email"`
-	Password       string           `json:"password"`
-	Phone          string           `json:"phone"`
-	Role           string           `json:"role"`
-	AvatarUrl      pgtype.Text      `json:"avatar_url"`
-	CreatedAt      pgtype.Timestamp `json:"created_at"`
-	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
-	OrganizationID pgtype.UUID      `json:"organization_id"`
+	ID                    uuid.UUID          `json:"id"`
+	FirstName             string             `json:"first_name"`
+	LastName              string             `json:"last_name"`
+	Email                 string             `json:"email"`
+	Password              string             `json:"password"`
+	Phone                 string             `json:"phone"`
+	RoleID                uuid.UUID          `json:"role_id"`
+	OrganizationID        pgtype.UUID        `json:"organization_id"`
+	AvatarUrl             pgtype.Text        `json:"avatar_url"`
+	IsActive              bool               `json:"is_active"`
+	EmailVerified         bool               `json:"email_verified"`
+	PhoneVerified         bool               `json:"phone_verified"`
+	RefreshToken          pgtype.Text        `json:"refresh_token"`
+	RefreshTokenExpiresAt pgtype.Timestamptz `json:"refresh_token_expires_at"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }

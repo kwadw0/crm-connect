@@ -111,6 +111,35 @@ definitions:
       website_url:
         type: string
     type: object
+  roles.CreateRoleDTO:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  roles.RoleResponseDTO:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  roles.UpdateRoleDTO:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
   users.CreateUserDto:
     properties:
       avatar_url:
@@ -126,7 +155,7 @@ definitions:
         type: string
       phone:
         type: string
-      role:
+      roleID:
         type: string
     required:
     - email
@@ -134,7 +163,7 @@ definitions:
     - last_name
     - password
     - phone
-    - role
+    - roleID
     type: object
   users.LoginResponse:
     properties:
@@ -157,7 +186,7 @@ definitions:
         type: string
       phone:
         type: string
-      role:
+      roleID:
         type: string
     type: object
   users.UserResponseDto:
@@ -176,9 +205,11 @@ definitions:
         type: string
       last_name:
         type: string
+      organization_id:
+        type: string
       phone:
         type: string
-      role:
+      role_id:
         type: string
       updated_at:
         type: string
@@ -387,6 +418,125 @@ paths:
       summary: Get current user's organization
       tags:
       - Organizations
+  /roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  items:
+                    $ref: '#/definitions/roles.RoleResponseDTO'
+                  type: array
+              type: object
+      summary: List all roles
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/roles.CreateRoleDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/roles.RoleResponseDTO'
+              type: object
+      summary: Create a role
+      tags:
+      - Roles
+  /roles/{id}:
+    delete:
+      parameters:
+      - description: Role UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/roles.RoleResponseDTO'
+              type: object
+      summary: Delete a role
+      tags:
+      - Roles
+    get:
+      parameters:
+      - description: Role UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/roles.RoleResponseDTO'
+              type: object
+      summary: Get a role by ID
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/roles.UpdateRoleDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/roles.RoleResponseDTO'
+              type: object
+      summary: Update an existing role
+      tags:
+      - Roles
   /users:
     get:
       produces:

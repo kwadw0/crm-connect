@@ -31,13 +31,18 @@ func (s *userService) CreateUser(ctx context.Context, dto CreateUserDto) (UserRe
 	if err != nil {
 		return UserResponseDto{}, err
 	}
+	roleID, err := uuid.Parse(dto.RoleID)
+	if err != nil {
+		return UserResponseDto{}, fmt.Errorf("invalid role id: %w", err)
+	}
+
 	user, err := s.repo.CreateUser(ctx, repo.CreateUserParams{
 		FirstName: dto.FirstName,
 		LastName:  dto.LastName,
 		Email:     dto.Email,
 		Password:  hashedPassword,
 		Phone:     dto.Phone,
-		Role:      dto.Role,
+		RoleID:    roleID,
 		AvatarUrl: pgtype.Text{String: dto.AvatarURL, Valid: dto.AvatarURL != ""},
 	})
 	if err != nil {
@@ -76,6 +81,15 @@ func (s *userService) UpdateUser(ctx context.Context, userID uuid.UUID, dto Upda
 		return UserResponseDto{}, fmt.Errorf("user not found: %w", err)
 	}
 
+	roleID := existingUser.RoleID
+	if dto.RoleID != "" {
+		parsedRoleID, err := uuid.Parse(dto.RoleID)
+		if err != nil {
+			return UserResponseDto{}, fmt.Errorf("invalid role id: %w", err)
+		}
+		roleID = parsedRoleID
+	}
+
 	// Now run the update with the standard UUID type and the existing password
 	user, err := s.repo.UpdateUser(ctx, repo.UpdateUserParams{
 		ID:        userID,
@@ -83,7 +97,7 @@ func (s *userService) UpdateUser(ctx context.Context, userID uuid.UUID, dto Upda
 		LastName:  dto.LastName,
 		Email:     dto.Email,
 		Phone:     dto.Phone,
-		Role:      dto.Role,
+		RoleID:    roleID,
 		Password:  existingUser.Password, // Carry over existing password
 		AvatarUrl: pgtype.Text{String: dto.AvatarURL, Valid: dto.AvatarURL != ""},
 	})
@@ -110,19 +124,16 @@ func (s *userService) GetUserByID(ctx context.Context, userID uuid.UUID) (UserRe
 }
 
 func mapUserToResponse(u repo.User) UserResponseDto {
-	// Thanks to google/uuid, this is basically instant now:
-	idStr := u.ID.String()
-
 	return UserResponseDto{
-		ID:        idStr,
-		FirstName: u.FirstName,
-		LastName:  u.LastName,
-		Email:     u.Email,
-		Phone:     u.Phone,
-		Role:      u.Role,
+		ID:             u.ID.String(),
+		FirstName:      u.FirstName,
+		LastName:       u.LastName,
+		Email:          u.Email,
+		Phone:          u.Phone,
+		RoleID:         u.RoleID.String(),
 		OrganizationID: u.OrganizationID.String(),
-		AvatarURL: u.AvatarUrl.String,
-		CreatedAt: u.CreatedAt.Time.String(),
-		UpdatedAt: u.UpdatedAt.Time.String(),
+		AvatarURL:      u.AvatarUrl.String,
+		CreatedAt:      u.CreatedAt.Time.String(),
+		UpdatedAt:      u.UpdatedAt.Time.String(),
 	}
 }

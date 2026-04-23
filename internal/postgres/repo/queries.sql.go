@@ -12,7 +12,93 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createChannel = `-- name: CreateChannel :one
+
+INSERT INTO channels (
+  organization_id,
+  name,
+  description,
+  channel_platform,
+  avatar_url,
+  status,
+  status_reason,
+  auth_config,
+  platform_config,
+  capabilities,
+  webhook_verified,
+  webhook_url
+) VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8,
+  $9,
+  $10,
+  $11,
+  $12
+) RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+type CreateChannelParams struct {
+	OrganizationID  uuid.UUID       `json:"organization_id"`
+	Name            string          `json:"name"`
+	Description     pgtype.Text     `json:"description"`
+	ChannelPlatform ChannelPlatform `json:"channel_platform"`
+	AvatarUrl       pgtype.Text     `json:"avatar_url"`
+	Status          ChannelStatus   `json:"status"`
+	StatusReason    pgtype.Text     `json:"status_reason"`
+	AuthConfig      []byte          `json:"auth_config"`
+	PlatformConfig  []byte          `json:"platform_config"`
+	Capabilities    []byte          `json:"capabilities"`
+	WebhookVerified bool            `json:"webhook_verified"`
+	WebhookUrl      pgtype.Text     `json:"webhook_url"`
+}
+
+// ============================================================
+// CHANNELS
+// ============================================================
+func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, createChannel,
+		arg.OrganizationID,
+		arg.Name,
+		arg.Description,
+		arg.ChannelPlatform,
+		arg.AvatarUrl,
+		arg.Status,
+		arg.StatusReason,
+		arg.AuthConfig,
+		arg.PlatformConfig,
+		arg.Capabilities,
+		arg.WebhookVerified,
+		arg.WebhookUrl,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createOrganization = `-- name: CreateOrganization :one
+
 INSERT INTO organizations (
   name,
   description,
@@ -48,9 +134,12 @@ type CreateOrganizationParams struct {
 	PrimaryUseCase      string      `json:"primary_use_case"`
 	OwnerRole           string      `json:"owner_role"`
 	ReferralSource      pgtype.Text `json:"referral_source"`
-	IsActive            pgtype.Bool `json:"is_active"`
+	IsActive            bool        `json:"is_active"`
 }
 
+// ============================================================
+// ORGANIZATIONS
+// ============================================================
 func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error) {
 	row := q.db.QueryRow(ctx, createOrganization,
 		arg.Name,
@@ -83,14 +172,47 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 	return i, err
 }
 
+const createRole = `-- name: CreateRole :one
+
+INSERT INTO roles (
+  name,
+  description
+) VALUES (
+  $1,
+  $2
+) RETURNING id, name, description, created_at, updated_at
+`
+
+type CreateRoleParams struct {
+	Name        string      `json:"name"`
+	Description pgtype.Text `json:"description"`
+}
+
+// ============================================================
+// ROLES
+// ============================================================
+func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error) {
+	row := q.db.QueryRow(ctx, createRole, arg.Name, arg.Description)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
+
 INSERT INTO users (
   first_name,
   last_name,
   email,
   password,
   phone,
-  role,
+  role_id,
   avatar_url
 ) VALUES (
   $1,
@@ -100,7 +222,7 @@ INSERT INTO users (
   $5,
   $6,
   $7
-) RETURNING id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id
+) RETURNING id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -109,10 +231,13 @@ type CreateUserParams struct {
 	Email     string      `json:"email"`
 	Password  string      `json:"password"`
 	Phone     string      `json:"phone"`
-	Role      string      `json:"role"`
+	RoleID    uuid.UUID   `json:"role_id"`
 	AvatarUrl pgtype.Text `json:"avatar_url"`
 }
 
+// ============================================================
+// USERS
+// ============================================================
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.FirstName,
@@ -120,7 +245,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.Password,
 		arg.Phone,
-		arg.Role,
+		arg.RoleID,
 		arg.AvatarUrl,
 	)
 	var i User
@@ -131,11 +256,43 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.Password,
 		&i.Phone,
-		&i.Role,
+		&i.RoleID,
+		&i.OrganizationID,
 		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteChannel = `-- name: DeleteChannel :one
+DELETE FROM channels WHERE id = $1 RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+func (q *Queries) DeleteChannel(ctx context.Context, id uuid.UUID) (Channel, error) {
+	row := q.db.QueryRow(ctx, deleteChannel, id)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
 		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -165,8 +322,25 @@ func (q *Queries) DeleteOrganization(ctx context.Context, id uuid.UUID) (Organiz
 	return i, err
 }
 
+const deleteRole = `-- name: DeleteRole :one
+DELETE FROM roles WHERE id = $1 RETURNING id, name, description, created_at, updated_at
+`
+
+func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) (Role, error) {
+	row := q.db.QueryRow(ctx, deleteRole, id)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteUser = `-- name: DeleteUser :one
-DELETE FROM users WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id
+DELETE FROM users WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) (User, error) {
@@ -179,21 +353,325 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Email,
 		&i.Password,
 		&i.Phone,
-		&i.Role,
+		&i.RoleID,
+		&i.OrganizationID,
 		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.OrganizationID,
 	)
 	return i, err
 }
 
-const findAllOrganizations = `-- name: FindAllOrganizations :many
+const getChannelByID = `-- name: GetChannelByID :one
+SELECT id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at FROM channels WHERE id = $1
+`
+
+func (q *Queries) GetChannelByID(ctx context.Context, id uuid.UUID) (Channel, error) {
+	row := q.db.QueryRow(ctx, getChannelByID, id)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getOrganizationByID = `-- name: GetOrganizationByID :one
+SELECT id, name, description, website_url, industry, team_size, primary_customer_type, primary_use_case, owner_role, referral_source, is_active, created_at, updated_at FROM organizations WHERE id = $1
+`
+
+func (q *Queries) GetOrganizationByID(ctx context.Context, id uuid.UUID) (Organization, error) {
+	row := q.db.QueryRow(ctx, getOrganizationByID, id)
+	var i Organization
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.WebsiteUrl,
+		&i.Industry,
+		&i.TeamSize,
+		&i.PrimaryCustomerType,
+		&i.PrimaryUseCase,
+		&i.OwnerRole,
+		&i.ReferralSource,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, name, description, created_at, updated_at FROM roles WHERE id = $1
+`
+
+func (q *Queries) GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByID, id)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRoleByName = `-- name: GetRoleByName :one
+SELECT id, name, description, created_at, updated_at FROM roles WHERE name = $1
+`
+
+func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByName, name)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at FROM users WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
+		&i.OrganizationID,
+		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
+		&i.OrganizationID,
+		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByRefreshToken = `-- name: GetUserByRefreshToken :one
+SELECT id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at FROM users
+WHERE refresh_token = $1
+  AND refresh_token_expires_at > now()
+`
+
+func (q *Queries) GetUserByRefreshToken(ctx context.Context, refreshToken pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByRefreshToken, refreshToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
+		&i.OrganizationID,
+		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listChannels = `-- name: ListChannels :many
+SELECT id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at FROM channels
+`
+
+func (q *Queries) ListChannels(ctx context.Context) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, listChannels)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Channel
+	for rows.Next() {
+		var i Channel
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.Name,
+			&i.Description,
+			&i.ChannelPlatform,
+			&i.AvatarUrl,
+			&i.Status,
+			&i.StatusReason,
+			&i.AuthConfig,
+			&i.PlatformConfig,
+			&i.Capabilities,
+			&i.WebhookVerified,
+			&i.WebhookUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChannelsByOrganization = `-- name: ListChannelsByOrganization :many
+SELECT id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at FROM channels WHERE organization_id = $1
+`
+
+func (q *Queries) ListChannelsByOrganization(ctx context.Context, organizationID uuid.UUID) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, listChannelsByOrganization, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Channel
+	for rows.Next() {
+		var i Channel
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.Name,
+			&i.Description,
+			&i.ChannelPlatform,
+			&i.AvatarUrl,
+			&i.Status,
+			&i.StatusReason,
+			&i.AuthConfig,
+			&i.PlatformConfig,
+			&i.Capabilities,
+			&i.WebhookVerified,
+			&i.WebhookUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChannelsByPlatform = `-- name: ListChannelsByPlatform :many
+SELECT id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at FROM channels
+WHERE organization_id = $1
+  AND channel_platform = $2
+`
+
+type ListChannelsByPlatformParams struct {
+	OrganizationID  uuid.UUID       `json:"organization_id"`
+	ChannelPlatform ChannelPlatform `json:"channel_platform"`
+}
+
+func (q *Queries) ListChannelsByPlatform(ctx context.Context, arg ListChannelsByPlatformParams) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, listChannelsByPlatform, arg.OrganizationID, arg.ChannelPlatform)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Channel
+	for rows.Next() {
+		var i Channel
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.Name,
+			&i.Description,
+			&i.ChannelPlatform,
+			&i.AvatarUrl,
+			&i.Status,
+			&i.StatusReason,
+			&i.AuthConfig,
+			&i.PlatformConfig,
+			&i.Capabilities,
+			&i.WebhookVerified,
+			&i.WebhookUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrganizations = `-- name: ListOrganizations :many
 SELECT id, name, description, website_url, industry, team_size, primary_customer_type, primary_use_case, owner_role, referral_source, is_active, created_at, updated_at FROM organizations
 `
 
-func (q *Queries) FindAllOrganizations(ctx context.Context) ([]Organization, error) {
-	rows, err := q.db.Query(ctx, findAllOrganizations)
+func (q *Queries) ListOrganizations(ctx context.Context) ([]Organization, error) {
+	rows, err := q.db.Query(ctx, listOrganizations)
 	if err != nil {
 		return nil, err
 	}
@@ -226,79 +704,38 @@ func (q *Queries) FindAllOrganizations(ctx context.Context) ([]Organization, err
 	return items, nil
 }
 
-const findOrganizationByID = `-- name: FindOrganizationByID :one
-SELECT id, name, description, website_url, industry, team_size, primary_customer_type, primary_use_case, owner_role, referral_source, is_active, created_at, updated_at FROM organizations WHERE id = $1
+const listRoles = `-- name: ListRoles :many
+SELECT id, name, description, created_at, updated_at FROM roles
 `
 
-func (q *Queries) FindOrganizationByID(ctx context.Context, id uuid.UUID) (Organization, error) {
-	row := q.db.QueryRow(ctx, findOrganizationByID, id)
-	var i Organization
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.WebsiteUrl,
-		&i.Industry,
-		&i.TeamSize,
-		&i.PrimaryCustomerType,
-		&i.PrimaryUseCase,
-		&i.OwnerRole,
-		&i.ReferralSource,
-		&i.IsActive,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id FROM users WHERE email = $1
-`
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.FirstName,
-		&i.LastName,
-		&i.Email,
-		&i.Password,
-		&i.Phone,
-		&i.Role,
-		&i.AvatarUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.OrganizationID,
-	)
-	return i, err
-}
-
-const getUserByID = `-- name: GetUserByID :one
-SELECT id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id FROM users WHERE id = $1
-`
-
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.FirstName,
-		&i.LastName,
-		&i.Email,
-		&i.Password,
-		&i.Phone,
-		&i.Role,
-		&i.AvatarUrl,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.OrganizationID,
-	)
-	return i, err
+func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
+	rows, err := q.db.Query(ctx, listRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Role
+	for rows.Next() {
+		var i Role
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id FROM users
+SELECT id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at FROM users
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -317,11 +754,16 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Email,
 			&i.Password,
 			&i.Phone,
-			&i.Role,
+			&i.RoleID,
+			&i.OrganizationID,
 			&i.AvatarUrl,
+			&i.IsActive,
+			&i.EmailVerified,
+			&i.PhoneVerified,
+			&i.RefreshToken,
+			&i.RefreshTokenExpiresAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.OrganizationID,
 		); err != nil {
 			return nil, err
 		}
@@ -331,6 +773,188 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+UPDATE users SET
+  refresh_token = NULL,
+  refresh_token_expires_at = NULL
+WHERE id = $1
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeRefreshToken, id)
+	return err
+}
+
+const updateChannel = `-- name: UpdateChannel :one
+UPDATE channels SET
+  name = $2,
+  description = $3,
+  avatar_url = $4,
+  status = $5,
+  status_reason = $6,
+  auth_config = $7,
+  platform_config = $8,
+  capabilities = $9,
+  webhook_verified = $10,
+  webhook_url = $11
+WHERE id = $1 RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+type UpdateChannelParams struct {
+	ID              uuid.UUID     `json:"id"`
+	Name            string        `json:"name"`
+	Description     pgtype.Text   `json:"description"`
+	AvatarUrl       pgtype.Text   `json:"avatar_url"`
+	Status          ChannelStatus `json:"status"`
+	StatusReason    pgtype.Text   `json:"status_reason"`
+	AuthConfig      []byte        `json:"auth_config"`
+	PlatformConfig  []byte        `json:"platform_config"`
+	Capabilities    []byte        `json:"capabilities"`
+	WebhookVerified bool          `json:"webhook_verified"`
+	WebhookUrl      pgtype.Text   `json:"webhook_url"`
+}
+
+func (q *Queries) UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannel,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.AvatarUrl,
+		arg.Status,
+		arg.StatusReason,
+		arg.AuthConfig,
+		arg.PlatformConfig,
+		arg.Capabilities,
+		arg.WebhookVerified,
+		arg.WebhookUrl,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateChannelAuthConfig = `-- name: UpdateChannelAuthConfig :one
+UPDATE channels SET
+  auth_config = $2
+WHERE id = $1 RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+type UpdateChannelAuthConfigParams struct {
+	ID         uuid.UUID `json:"id"`
+	AuthConfig []byte    `json:"auth_config"`
+}
+
+func (q *Queries) UpdateChannelAuthConfig(ctx context.Context, arg UpdateChannelAuthConfigParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannelAuthConfig, arg.ID, arg.AuthConfig)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateChannelStatus = `-- name: UpdateChannelStatus :one
+UPDATE channels SET
+  status = $2,
+  status_reason = $3
+WHERE id = $1 RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+type UpdateChannelStatusParams struct {
+	ID           uuid.UUID     `json:"id"`
+	Status       ChannelStatus `json:"status"`
+	StatusReason pgtype.Text   `json:"status_reason"`
+}
+
+func (q *Queries) UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannelStatus, arg.ID, arg.Status, arg.StatusReason)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateChannelWebhook = `-- name: UpdateChannelWebhook :one
+UPDATE channels SET
+  webhook_verified = $2,
+  webhook_url = $3
+WHERE id = $1 RETURNING id, organization_id, name, description, channel_platform, avatar_url, status, status_reason, auth_config, platform_config, capabilities, webhook_verified, webhook_url, created_at, updated_at
+`
+
+type UpdateChannelWebhookParams struct {
+	ID              uuid.UUID   `json:"id"`
+	WebhookVerified bool        `json:"webhook_verified"`
+	WebhookUrl      pgtype.Text `json:"webhook_url"`
+}
+
+func (q *Queries) UpdateChannelWebhook(ctx context.Context, arg UpdateChannelWebhookParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, updateChannelWebhook, arg.ID, arg.WebhookVerified, arg.WebhookUrl)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Name,
+		&i.Description,
+		&i.ChannelPlatform,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.StatusReason,
+		&i.AuthConfig,
+		&i.PlatformConfig,
+		&i.Capabilities,
+		&i.WebhookVerified,
+		&i.WebhookUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateOrganization = `-- name: UpdateOrganization :one
@@ -359,7 +983,7 @@ type UpdateOrganizationParams struct {
 	PrimaryUseCase      string      `json:"primary_use_case"`
 	OwnerRole           string      `json:"owner_role"`
 	ReferralSource      pgtype.Text `json:"referral_source"`
-	IsActive            pgtype.Bool `json:"is_active"`
+	IsActive            bool        `json:"is_active"`
 }
 
 func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error) {
@@ -395,6 +1019,32 @@ func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganization
 	return i, err
 }
 
+const updateRole = `-- name: UpdateRole :one
+UPDATE roles SET
+  name = $2,
+  description = $3
+WHERE id = $1 RETURNING id, name, description, created_at, updated_at
+`
+
+type UpdateRoleParams struct {
+	ID          uuid.UUID   `json:"id"`
+	Name        string      `json:"name"`
+	Description pgtype.Text `json:"description"`
+}
+
+func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error) {
+	row := q.db.QueryRow(ctx, updateRole, arg.ID, arg.Name, arg.Description)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET
   first_name = $2,
@@ -402,9 +1052,9 @@ UPDATE users SET
   email = $4,
   password = $5,
   phone = $6,
-  role = $7,
+  role_id = $7,
   avatar_url = $8
-WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role, avatar_url, created_at, updated_at, organization_id
+WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -414,7 +1064,7 @@ type UpdateUserParams struct {
 	Email     string      `json:"email"`
 	Password  string      `json:"password"`
 	Phone     string      `json:"phone"`
-	Role      string      `json:"role"`
+	RoleID    uuid.UUID   `json:"role_id"`
 	AvatarUrl pgtype.Text `json:"avatar_url"`
 }
 
@@ -426,7 +1076,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Email,
 		arg.Password,
 		arg.Phone,
-		arg.Role,
+		arg.RoleID,
 		arg.AvatarUrl,
 	)
 	var i User
@@ -437,17 +1087,24 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Email,
 		&i.Password,
 		&i.Phone,
-		&i.Role,
+		&i.RoleID,
+		&i.OrganizationID,
 		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.OrganizationID,
 	)
 	return i, err
 }
 
-const updateUserOrganization = `-- name: UpdateUserOrganization :exec
-UPDATE users SET organization_id = $2 WHERE id = $1
+const updateUserOrganization = `-- name: UpdateUserOrganization :one
+UPDATE users SET
+  organization_id = $2
+WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at
 `
 
 type UpdateUserOrganizationParams struct {
@@ -455,7 +1112,63 @@ type UpdateUserOrganizationParams struct {
 	OrganizationID pgtype.UUID `json:"organization_id"`
 }
 
-func (q *Queries) UpdateUserOrganization(ctx context.Context, arg UpdateUserOrganizationParams) error {
-	_, err := q.db.Exec(ctx, updateUserOrganization, arg.ID, arg.OrganizationID)
-	return err
+func (q *Queries) UpdateUserOrganization(ctx context.Context, arg UpdateUserOrganizationParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserOrganization, arg.ID, arg.OrganizationID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
+		&i.OrganizationID,
+		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateUserRefreshToken = `-- name: UpdateUserRefreshToken :one
+UPDATE users SET
+  refresh_token = $2,
+  refresh_token_expires_at = $3
+WHERE id = $1 RETURNING id, first_name, last_name, email, password, phone, role_id, organization_id, avatar_url, is_active, email_verified, phone_verified, refresh_token, refresh_token_expires_at, created_at, updated_at
+`
+
+type UpdateUserRefreshTokenParams struct {
+	ID                    uuid.UUID          `json:"id"`
+	RefreshToken          pgtype.Text        `json:"refresh_token"`
+	RefreshTokenExpiresAt pgtype.Timestamptz `json:"refresh_token_expires_at"`
+}
+
+func (q *Queries) UpdateUserRefreshToken(ctx context.Context, arg UpdateUserRefreshTokenParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserRefreshToken, arg.ID, arg.RefreshToken, arg.RefreshTokenExpiresAt)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Email,
+		&i.Password,
+		&i.Phone,
+		&i.RoleID,
+		&i.OrganizationID,
+		&i.AvatarUrl,
+		&i.IsActive,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.RefreshToken,
+		&i.RefreshTokenExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

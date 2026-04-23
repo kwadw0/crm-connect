@@ -1,9 +1,9 @@
+-- +goose Up
+-- paste everything from schema.sql here
+
 create extension if not exists "uuid-ossp";
 
--- ============================================================
--- FUNCTIONS
--- ============================================================
-
+-- +goose StatementBegin
 create or replace function set_updated_at()
 returns trigger as $$
 begin
@@ -11,11 +11,7 @@ begin
   return new;
 end;
 $$ language plpgsql;
-
-
--- ============================================================
--- ENUMS
--- ============================================================
+-- +goose StatementEnd
 
 create type channel_platform as enum (
   'whatsapp',
@@ -37,11 +33,6 @@ create type channel_status as enum (
   'disconnected'
 );
 
-
--- ============================================================
--- ROLES
--- ============================================================
-
 create table "roles" (
   "id"          uuid         primary key default gen_random_uuid(),
   "name"        varchar(255) not null unique,
@@ -59,10 +50,6 @@ create trigger trg_roles_updated_at
   before update on "roles"
   for each row execute function set_updated_at();
 
-
--- ============================================================
--- ORGANIZATIONS
--- ============================================================
 
 create table "organizations" (
   "id"                    uuid         primary key default gen_random_uuid(),
@@ -143,11 +130,6 @@ create trigger trg_organizations_updated_at
   before update on "organizations"
   for each row execute function set_updated_at();
 
-
--- ============================================================
--- USERS
--- ============================================================
-
 create table "users" (
   "id"              uuid         primary key default gen_random_uuid(),
   "first_name"      varchar(255) not null,
@@ -157,7 +139,7 @@ create table "users" (
   "phone"           varchar(255) not null unique,
   "role_id"         uuid         not null references roles(id),
   "organization_id" uuid         null references organizations(id) on delete set null,
-  "avatar_url"      varchar(255) null,
+  "avatar_url"      varchar(255) null,  
   "is_active"       boolean      not null default true,
   "email_verified"  boolean      not null default false,
   "phone_verified"  boolean      not null default false,
@@ -176,10 +158,6 @@ create trigger trg_users_updated_at
   before update on "users"
   for each row execute function set_updated_at();
 
-
--- ============================================================
--- CHANNELS
--- ============================================================
 
 create table "channels" (
   "id"               uuid             primary key default gen_random_uuid(),
@@ -228,3 +206,33 @@ create index idx_channels_auth     on "channels" using gin("auth_config");
 create trigger trg_channels_updated_at
   before update on "channels"
   for each row execute function set_updated_at();
+-- +goose Down
+drop trigger if exists trg_channels_updated_at on "channels";
+drop trigger if exists trg_users_updated_at on "users";
+drop trigger if exists trg_organizations_updated_at on "organizations";
+drop trigger if exists trg_roles_updated_at on "roles";
+
+drop index if exists idx_channels_auth;
+drop index if exists idx_channels_config;
+drop index if exists idx_channels_status;
+drop index if exists idx_channels_platform;
+drop index if exists idx_channels_org;
+
+drop index if exists idx_users_organization_id;
+drop index if exists idx_users_role_id;
+drop index if exists idx_users_phone;
+drop index if exists idx_users_email;
+
+drop index if exists idx_organizations_is_active;
+drop index if exists idx_organizations_industry;
+drop index if exists idx_organizations_name;
+
+drop table if exists "channels";
+drop table if exists "users";
+drop table if exists "organizations";
+drop table if exists "roles";
+
+drop type if exists channel_status;
+drop type if exists channel_platform;
+
+drop function if exists set_updated_at;

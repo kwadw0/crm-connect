@@ -8,21 +8,53 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	// ============================================================
+	// CHANNELS
+	// ============================================================
+	CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error)
+	// ============================================================
+	// ORGANIZATIONS
+	// ============================================================
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (Organization, error)
+	// ============================================================
+	// ROLES
+	// ============================================================
+	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
+	// ============================================================
+	// USERS
+	// ============================================================
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteChannel(ctx context.Context, id uuid.UUID) (Channel, error)
 	DeleteOrganization(ctx context.Context, id uuid.UUID) (Organization, error)
+	DeleteRole(ctx context.Context, id uuid.UUID) (Role, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) (User, error)
-	FindAllOrganizations(ctx context.Context) ([]Organization, error)
-	FindOrganizationByID(ctx context.Context, id uuid.UUID) (Organization, error)
+	GetChannelByID(ctx context.Context, id uuid.UUID) (Channel, error)
+	GetOrganizationByID(ctx context.Context, id uuid.UUID) (Organization, error)
+	GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error)
+	GetRoleByName(ctx context.Context, name string) (Role, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByRefreshToken(ctx context.Context, refreshToken pgtype.Text) (User, error)
+	ListChannels(ctx context.Context) ([]Channel, error)
+	ListChannelsByOrganization(ctx context.Context, organizationID uuid.UUID) ([]Channel, error)
+	ListChannelsByPlatform(ctx context.Context, arg ListChannelsByPlatformParams) ([]Channel, error)
+	ListOrganizations(ctx context.Context) ([]Organization, error)
+	ListRoles(ctx context.Context) ([]Role, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	RevokeRefreshToken(ctx context.Context, id uuid.UUID) error
+	UpdateChannel(ctx context.Context, arg UpdateChannelParams) (Channel, error)
+	UpdateChannelAuthConfig(ctx context.Context, arg UpdateChannelAuthConfigParams) (Channel, error)
+	UpdateChannelStatus(ctx context.Context, arg UpdateChannelStatusParams) (Channel, error)
+	UpdateChannelWebhook(ctx context.Context, arg UpdateChannelWebhookParams) (Channel, error)
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) (Organization, error)
+	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
-	UpdateUserOrganization(ctx context.Context, arg UpdateUserOrganizationParams) error
+	UpdateUserOrganization(ctx context.Context, arg UpdateUserOrganizationParams) (User, error)
+	UpdateUserRefreshToken(ctx context.Context, arg UpdateUserRefreshTokenParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

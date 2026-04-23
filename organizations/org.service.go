@@ -35,14 +35,13 @@ func (s *organizationService) AddOrganization(ctx context.Context, userID uuid.U
 		PrimaryUseCase:      dto.PrimaryUseCase,
 		OwnerRole:           dto.OwnerRole,
 		ReferralSource:      pgtype.Text{String: dto.ReferralSource, Valid: dto.ReferralSource != ""},
-		IsActive:            pgtype.Bool{Bool: true, Valid: true},
 	})
 
 	if err != nil {
 		return OrganizationResponseDto{}, err
 	}
 
-	err = s.repo.UpdateUserOrganization(ctx, repo.UpdateUserOrganizationParams{
+	_, err = s.repo.UpdateUserOrganization(ctx, repo.UpdateUserOrganizationParams{
 		ID:             userID,
 		OrganizationID: pgtype.UUID{Bytes: organization.ID, Valid: true},
 	})
@@ -54,7 +53,7 @@ func (s *organizationService) AddOrganization(ctx context.Context, userID uuid.U
 }
 
 func (s *organizationService) GetOrganizationByID(ctx context.Context, orgID uuid.UUID) (OrganizationResponseDto, error) {
-	organization, err := s.repo.FindOrganizationByID(ctx, orgID)
+	organization, err := s.repo.GetOrganizationByID(ctx, orgID)
 	if err != nil {
 		return OrganizationResponseDto{}, err
 	}
@@ -63,7 +62,7 @@ func (s *organizationService) GetOrganizationByID(ctx context.Context, orgID uui
 }
 
 func (s *organizationService) ListOrganizations(ctx context.Context) ([]OrganizationResponseDto, error) {
-	orgs, err := s.repo.FindAllOrganizations(ctx)
+	orgs, err := s.repo.ListOrganizations(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (s *organizationService) ListOrganizations(ctx context.Context) ([]Organiza
 }
 
 func (s *organizationService) UpdateOrganizationById(ctx context.Context, orgID uuid.UUID, dto UpdateOrganizationDto) (OrganizationResponseDto, error) {
-	_, err := s.repo.FindOrganizationByID(ctx, orgID)
+	_, err := s.repo.GetOrganizationByID(ctx, orgID)
 	if err != nil {
 		return OrganizationResponseDto{}, err
 	}
@@ -85,7 +84,6 @@ func (s *organizationService) UpdateOrganizationById(ctx context.Context, orgID 
 	organization, err := s.repo.UpdateOrganization(ctx, repo.UpdateOrganizationParams{
 		ID:                  orgID,
 		Industry:            pgtype.Text{String: dto.Industry, Valid: dto.Industry != ""},
-		IsActive:            pgtype.Bool{Bool: dto.IsActive, Valid: true},
 		Name:                dto.Name,
 		PrimaryCustomerType: pgtype.Text{String: dto.PrimaryCustomerType, Valid: dto.PrimaryCustomerType != ""},
 		PrimaryUseCase:      dto.PrimaryUseCase,
@@ -118,7 +116,7 @@ func mapOrgToResponse(org repo.Organization) OrganizationResponseDto {
 		PrimaryUseCase:      org.PrimaryUseCase,
 		OwnerRole:           org.OwnerRole,
 		ReferralSource:      org.ReferralSource.String,
-		IsActive:            org.IsActive.Bool,
+		IsActive:            org.IsActive,
 		CreatedAt:           org.CreatedAt.Time.String(),
 		UpdatedAt:           org.UpdatedAt.Time.String(),
 	}

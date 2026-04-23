@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler interface {
@@ -18,10 +19,11 @@ type Handler interface {
 
 type authHandler struct {
 	service Service
+	validator *validator.Validate
 }
 
-func AuthHandler(service Service) Handler {
-	return &authHandler{service: service}
+func AuthHandler(service Service, v *validator.Validate) Handler {
+	return &authHandler{service: service, validator: v}
 }
 
 
@@ -40,35 +42,29 @@ func (h *authHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// validate BEFORE calling the service
+	if err := utils.Validate.Struct(dto); err != nil {
+		utils.WriteJson(w, http.StatusBadRequest, "Validation failed", nil, err.Error())
+		return
+	}
+
 	user, err := h.service.RegisterUser(r.Context(), dto)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		
-		// If it's a database error, let's check what kind it is!
 		if errors.As(err, &pgErr) {
-			// 1. Check for Duplicate Email or Duplicate Phone
 			if pgErr.Code == pgerrcode.UniqueViolation {
-				var msg string
-				
-				// Postgres tells us exactly which constraint was blocked!
 				if pgErr.ConstraintName == "users_email_key" {
-					msg = fmt.Sprintf("A user with email %s already exists", dto.Email)
+					msg := fmt.Sprintf("A user with email %s already exists", dto.Email)
 					utils.WriteJson(w, http.StatusConflict, "Email already in use", nil, msg)
 					return
 				}
-				
 				if pgErr.ConstraintName == "users_phone_key" {
-					msg = fmt.Sprintf("A user with phone number %s already exists", dto.Phone)
+					msg := fmt.Sprintf("A user with phone number %s already exists", dto.Phone)
 					utils.WriteJson(w, http.StatusConflict, "Phone number already in use", nil, msg)
 					return
 				}
 			}
-			
-			// 2. Add other checks here if needed in the future
-			// if pgErr.Code == pgerrcode.ForeignKeyViolation { ... }
 		}
-		
-		// If it's not a known database error, just return a generic 500
 		utils.WriteJson(w, http.StatusInternalServerError, "Failed to register user", nil, err.Error())
 		return
 	}

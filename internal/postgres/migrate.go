@@ -12,7 +12,6 @@ import (
 var embedMigrations embed.FS
 
 func RunMigrations(dsn string) error {
-	// 1. Goose needs a *sql.DB connection to run migrations
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return err

@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"time"
 	"errors"
 	"fmt"
+	"time"
 
 	"kwadw0/WhatsCRM/auth/jwt"
 	"kwadw0/WhatsCRM/internal/postgres/repo"
@@ -42,13 +42,20 @@ func (s *authService) RegisterUser(ctx context.Context, dto RegisterUserDto) (us
 		return users.UserResponseDto{}, err
 	}
 
+	// Find the default "user" role
+	role, err := s.userRepo.GetRoleByName(ctx, "user")
+	if err != nil {
+		return users.UserResponseDto{}, fmt.Errorf("failed to assign default role: %w", err)
+	}
+	roleID := role.ID
+
 	user, err := s.userRepo.CreateUser(ctx, repo.CreateUserParams{
-		FirstName: dto.FirstName,
+		FirstName: dto.FirstName,		
 		LastName:  dto.LastName,
 		Email:     dto.Email,
 		Password:  hashedPassword,
 		Phone:     dto.Phone,
-		Role:      "user",
+		RoleID:    roleID,
 		AvatarUrl: pgtype.Text{Valid: false}, // Default empty avatar
 	})
 
@@ -64,7 +71,7 @@ func (s *authService) RegisterUser(ctx context.Context, dto RegisterUserDto) (us
 		LastName:  user.LastName,
 		Email:     user.Email,
 		Phone:     user.Phone,
-		Role:      user.Role,
+		RoleID:    user.RoleID.String(),
 		AvatarURL: user.AvatarUrl.String,
 		CreatedAt: user.CreatedAt.Time.String(),
 		UpdatedAt: user.UpdatedAt.Time.String(),
