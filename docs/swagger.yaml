@@ -30,6 +30,79 @@ definitions:
     - password
     - phone
     type: object
+  channels.ChannelResponseDto:
+    properties:
+      auth_config:
+        items:
+          type: integer
+        type: array
+      avatar_url:
+        type: string
+      capabilities:
+        items:
+          type: integer
+        type: array
+      channel_platform:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      organization_id:
+        type: string
+      platform_config:
+        items:
+          type: integer
+        type: array
+      status:
+        type: string
+      status_reason:
+        type: string
+      updated_at:
+        type: string
+      webhook_url:
+        type: string
+      webhook_verified:
+        type: boolean
+    type: object
+  channels.CreateChannelDto:
+    properties:
+      avatar_url:
+        type: string
+      channel_platform:
+        enum:
+        - whatsapp
+        - telegram
+        - instagram
+        - facebook
+        - twitter
+        - linkedin
+        - email
+        - sms
+        - other
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      organization_id:
+        type: string
+    required:
+    - channel_platform
+    - name
+    - organization_id
+    type: object
+  channels.MetaConfigResponse:
+    properties:
+      app_id:
+        type: string
+      config_id:
+        type: string
+    type: object
   organizations.CreateOrganizationDto:
     properties:
       description:
@@ -282,6 +355,57 @@ paths:
       summary: Register a new user
       tags:
       - Auth
+  /channels:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Channel details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/channels.CreateChannelDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/channels.ChannelResponseDto'
+              type: object
+      summary: Create a new channel
+      tags:
+      - Channels
+  /channels/{id}/initiate:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Channel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/channels.MetaConfigResponse'
+              type: object
+      summary: Connect a channel (get Meta configuration)
+      tags:
+      - Channels
   /organizations:
     get:
       produces:

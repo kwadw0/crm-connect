@@ -1,0 +1,6 @@
+run
+go run cmd/main.go
+
+generate swagger docs
+go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/main.go --parseDependency
+

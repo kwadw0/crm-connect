@@ -163,12 +163,9 @@ INSERT INTO channels (
   description,
   channel_platform,
   avatar_url,
-  status,
-  status_reason,
   auth_config,
   platform_config,
   capabilities,
-  webhook_verified,
   webhook_url
 ) VALUES (
   $1,
@@ -179,10 +176,7 @@ INSERT INTO channels (
   $6,
   $7,
   $8,
-  $9,
-  $10,
-  $11,
-  $12
+  $9
 ) RETURNING *;
 
 -- name: GetChannelByID :one

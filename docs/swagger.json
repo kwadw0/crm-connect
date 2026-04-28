@@ -99,6 +99,94 @@
                 }
             }
         },
+        "/channels": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Channels"
+                ],
+                "summary": "Create a new channel",
+                "parameters": [
+                    {
+                        "description": "Channel details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/channels.CreateChannelDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.JsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "Data": {
+                                            "$ref": "#/definitions/channels.ChannelResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/channels/{id}/initiate": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Channels"
+                ],
+                "summary": "Connect a channel (get Meta configuration)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.JsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "Data": {
+                                            "$ref": "#/definitions/channels.MetaConfigResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/organizations": {
             "get": {
                 "produces": [
@@ -786,6 +874,112 @@
                     "minLength": 6
                 },
                 "phone": {
+                    "type": "string"
+                }
+            }
+        },
+        "channels.ChannelResponseDto": {
+            "type": "object",
+            "properties": {
+                "auth_config": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "channel_platform": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "string"
+                },
+                "platform_config": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "status_reason": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "webhook_url": {
+                    "type": "string"
+                },
+                "webhook_verified": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "channels.CreateChannelDto": {
+            "type": "object",
+            "required": [
+                "channel_platform",
+                "name",
+                "organization_id"
+            ],
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "channel_platform": {
+                    "type": "string",
+                    "enum": [
+                        "whatsapp",
+                        "telegram",
+                        "instagram",
+                        "facebook",
+                        "twitter",
+                        "linkedin",
+                        "email",
+                        "sms",
+                        "other"
+                    ]
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "channels.MetaConfigResponse": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "config_id": {
                     "type": "string"
                 }
             }

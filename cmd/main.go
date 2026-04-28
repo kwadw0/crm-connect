@@ -40,6 +40,8 @@ func main() {
 		},
 		jwtSecret: os.Getenv("JWT_SECRET"),
 		tokenTTL:  ttl,
+		metaConfigID: os.Getenv("META_CONFIG_ID"),
+		metaAppID:    os.Getenv("META_APP_ID"),
 	}
 
 	app := application{

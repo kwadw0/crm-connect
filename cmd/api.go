@@ -3,6 +3,7 @@ package main
 import (
 	"kwadw0/WhatsCRM/auth"
 	"kwadw0/WhatsCRM/internal/postgres/repo"
+	"kwadw0/WhatsCRM/channels"
 	"kwadw0/WhatsCRM/organizations"
 	"kwadw0/WhatsCRM/roles"
 	"kwadw0/WhatsCRM/users"
@@ -85,6 +86,14 @@ func (app *application) mount () http.Handler {
 			r.Put("/{id}", orgHandler.UpdateOrganization)
 			r.Delete("/{id}", orgHandler.DeleteOrganization)
 		})
+
+		channelService := channels.NewChannelService(repo.New(app.db), orgService, app.config.metaConfigID, app.config.metaAppID)
+		channelHandler := channels.NewHandler(channelService, app.validator)
+
+		r.Route("/channels", func(r chi.Router) {
+			r.Post("/", channelHandler.CreateChannel)
+			r.Post("/{id}/initiate", channelHandler.ConnectChannel)
+		})
 	})
 
 	return r	
@@ -103,6 +112,8 @@ type config struct {
 	db dbConfig
 	jwtSecret string
 	tokenTTL  time.Duration
+	metaConfigID string
+	metaAppID    string
 }
 
 type dbConfig struct {
