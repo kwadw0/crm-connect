@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Go build artifacts
+bin/
+dist/
+build/
+*.exe
+*.out
+*.test
+
+# Vendor (if you use modules, usually not needed in image)
+vendor/
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml

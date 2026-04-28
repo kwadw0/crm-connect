@@ -21,10 +21,12 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	err := godotenv.Load()
-	if err != nil {
-		logger.Error("Failed to load .env file", "error", err)
-		os.Exit(1)
+// Check if .env file exists before trying to load it
+	if _, err := os.Stat(".env"); err == nil {
+		err := godotenv.Load()
+		if err != nil {
+			logger.Warn("Could not load .env file", "error", err)
+		}
 	}
 
 	ttl, err := time.ParseDuration(os.Getenv("TOKEN_TTL"))
@@ -33,8 +35,13 @@ func main() {
 		ttl = time.Hour * 24
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
 	cfg := config{
-		Addr: ":3000",
+		Addr: ":" + port,
 		db: dbConfig{
 			DSN: os.Getenv("DATABASE_URL"),
 		},
