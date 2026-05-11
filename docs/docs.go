@@ -150,6 +150,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/channels/{id}/connect": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Channels"
+                ],
+                "summary": "Connect a channel with Meta OAuth code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "OAuth Code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/channels.ConnectChannelDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.JsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "Data": {
+                                            "$ref": "#/definitions/channels.ChannelResponseDto"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/channels/{id}/initiate": {
             "post": {
                 "consumes": [
@@ -188,6 +240,44 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/channels/{id}/webhook": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Handle Webhook payload for a channel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Channel UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Webhook payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {}
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -940,6 +1030,17 @@ const docTemplate = `{
                 },
                 "webhook_verified": {
                     "type": "boolean"
+                }
+            }
+        },
+        "channels.ConnectChannelDto": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
                 }
             }
         },

@@ -58,3 +58,7 @@ type MetaConfigResponse struct {
 	ConfigID string `json:"config_id"`
 	AppID    string `json:"app_id"`
 }
+
+type ConnectChannelDto struct {
+	Code string `json:"code" validate:"required"`
+}

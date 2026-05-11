@@ -21,7 +21,7 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-// Check if .env file exists before trying to load it
+	// Check if .env file exists before trying to load it
 	if _, err := os.Stat(".env"); err == nil {
 		err := godotenv.Load()
 		if err != nil {
@@ -45,10 +45,12 @@ func main() {
 		db: dbConfig{
 			DSN: os.Getenv("DATABASE_URL"),
 		},
-		jwtSecret: os.Getenv("JWT_SECRET"),
-		tokenTTL:  ttl,
-		metaConfigID: os.Getenv("META_CONFIG_ID"),
-		metaAppID:    os.Getenv("META_APP_ID"),
+		jwtSecret:    os.Getenv("JWT_SECRET"),
+		tokenTTL:     ttl,
+		metaConfigID:    os.Getenv("META_CONFIG_ID"),
+		metaAppID:       os.Getenv("META_APP_ID"),
+		metaAppSecret:   os.Getenv("META_APP_SECRET"),
+		metaRedirectURI: os.Getenv("META_REDIRECT_URI"),
 	}
 
 	app := application{
@@ -57,11 +59,11 @@ func main() {
 	}
 
 	logger.Info("Running database migrations...")
-    if err := postgres.RunMigrations(cfg.db.DSN); err != nil {
-        logger.Error("Migration failed", "error", err)
-        os.Exit(1)
-    }
-    logger.Info("Migrations completed successfully")
+	if err := postgres.RunMigrations(cfg.db.DSN); err != nil {
+		logger.Error("Migration failed", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("Migrations completed successfully")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -76,7 +78,7 @@ func main() {
 
 	app.db = conn
 
-    if err := app.run(app.mount()); err != nil {
+	if err := app.run(app.mount()); err != nil {
 		logger.Error("Failed to run application", "error", err)
 		os.Exit(1)
 	}

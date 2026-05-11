@@ -226,3 +226,8 @@ WHERE id = $1 RETURNING *;
 
 -- name: DeleteChannel :one
 DELETE FROM channels WHERE id = $1 RETURNING *;
+
+-- name: UpdateChannelPlatformConfig :one
+update channels set
+  platform_config = $2
+where id = $1 returning *;

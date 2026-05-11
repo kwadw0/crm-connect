@@ -69,6 +69,13 @@ definitions:
       webhook_verified:
         type: boolean
     type: object
+  channels.ConnectChannelDto:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
   channels.CreateChannelDto:
     properties:
       avatar_url:
@@ -381,6 +388,37 @@ paths:
       summary: Create a new channel
       tags:
       - Channels
+  /channels/{id}/connect:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Channel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: OAuth Code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/channels.ConnectChannelDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/channels.ChannelResponseDto'
+              type: object
+      summary: Connect a channel with Meta OAuth code
+      tags:
+      - Channels
   /channels/{id}/initiate:
     post:
       consumes:
@@ -406,6 +444,31 @@ paths:
       summary: Connect a channel (get Meta configuration)
       tags:
       - Channels
+  /channels/{id}/webhook:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Channel UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Webhook payload
+        in: body
+        name: payload
+        required: true
+        schema: {}
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Handle Webhook payload for a channel
+      tags:
+      - Webhooks
   /organizations:
     get:
       produces:

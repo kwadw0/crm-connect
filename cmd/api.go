@@ -2,8 +2,8 @@ package main
 
 import (
 	"kwadw0/WhatsCRM/auth"
-	"kwadw0/WhatsCRM/internal/postgres/repo"
 	"kwadw0/WhatsCRM/channels"
+	"kwadw0/WhatsCRM/internal/postgres/repo"
 	"kwadw0/WhatsCRM/organizations"
 	"kwadw0/WhatsCRM/roles"
 	"kwadw0/WhatsCRM/users"
@@ -20,13 +20,12 @@ import (
 	_ "kwadw0/WhatsCRM/docs"
 )
 
-
-func (app *application) run (h http.Handler) error {
+func (app *application) run(h http.Handler) error {
 	slog.Info("Server started on ", app.config.Addr, h)
 	return http.ListenAndServe(app.config.Addr, h)
 }
 
-func (app *application) mount () http.Handler {
+func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
@@ -53,7 +52,7 @@ func (app *application) mount () http.Handler {
 		r.Delete("/{id}", userHandler.DeleteUser)
 	})
 
-	authService := auth.NewService(repo.New(app.db),  []byte(app.config.jwtSecret), app.config.tokenTTL)
+	authService := auth.NewService(repo.New(app.db), []byte(app.config.jwtSecret), app.config.tokenTTL)
 	authHandler := auth.AuthHandler(authService, app.validator)
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.RegisterUser)
@@ -70,12 +69,25 @@ func (app *application) mount () http.Handler {
 		r.Delete("/{id}", roleHandler.DeleteRole)
 	})
 
+	orgService := organizations.NewOrganizationService(repo.New(app.db))
+	orgHandler := organizations.NewOrganizationHandler(orgService, userService, app.validator)
+
+	channelService := channels.NewChannelService(
+		repo.New(app.db),
+		orgService,
+		app.config.metaConfigID,
+		app.config.metaAppID,
+		app.config.metaAppSecret,
+		app.config.metaRedirectURI,
+	)
+	channelHandler := channels.NewHandler(channelService, app.validator)
+
+	// Public Webhook Route
+	//r.Post("/channels/{id}/webhook", channelHandler.HandleWebhook)
+
 	// --- PROTECTED ROUTES (Requires AuthMiddleware) ---
 	r.Group(func(r chi.Router) {
 		r.Use(auth.AuthMiddleware([]byte(app.config.jwtSecret)))
-
-		orgService := organizations.NewOrganizationService(repo.New(app.db))
-		orgHandler := organizations.NewOrganizationHandler(orgService, userService, app.validator)
 
 		// Grouping all /organizations endpoints together
 		r.Route("/organizations", func(r chi.Router) {
@@ -87,18 +99,15 @@ func (app *application) mount () http.Handler {
 			r.Delete("/{id}", orgHandler.DeleteOrganization)
 		})
 
-		channelService := channels.NewChannelService(repo.New(app.db), orgService, app.config.metaConfigID, app.config.metaAppID)
-		channelHandler := channels.NewHandler(channelService, app.validator)
-
 		r.Route("/channels", func(r chi.Router) {
 			r.Post("/", channelHandler.CreateChannel)
-			r.Post("/{id}/initiate", channelHandler.ConnectChannel)
+			r.Post("/{id}/initiate", channelHandler.InitiateConnection)
+			r.Post("/{id}/connect", channelHandler.ConnectChannel)
 		})
 	})
 
-	return r	
+	return r
 }
-
 
 type application struct {
 	config    config
@@ -106,17 +115,17 @@ type application struct {
 	validator *validator.Validate
 }
 
-
 type config struct {
-	Addr string
-	db dbConfig
-	jwtSecret string
-	tokenTTL  time.Duration
-	metaConfigID string
-	metaAppID    string
+	Addr            string
+	db              dbConfig
+	jwtSecret       string
+	tokenTTL        time.Duration
+	metaConfigID    string
+	metaAppID       string
+	metaAppSecret   string
+	metaRedirectURI string
 }
 
 type dbConfig struct {
 	DSN string
 }
-
