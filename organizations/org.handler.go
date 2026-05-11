@@ -3,7 +3,6 @@ package organizations
 import (
 	"encoding/json"
 	"errors"
-	"kwadw0/WhatsCRM/auth"
 	"kwadw0/WhatsCRM/users"
 	"kwadw0/WhatsCRM/utils"
 	"net/http"
@@ -58,7 +57,7 @@ func (h *organizationHandler) AddOrganization(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	userIDStr := auth.GetUserIDFromContext(r.Context())
+	userIDStr := utils.GetUserIDFromContext(r.Context())
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		utils.WriteJson(w, http.StatusUnauthorized, "Invalid user ID format", nil, err.Error())
@@ -125,7 +124,7 @@ func (h *organizationHandler) ListOrganizations(w http.ResponseWriter, r *http.R
 // @Success 200 {object} utils.JsonResponse{Data=OrganizationResponseDto}
 // @Router /organizations/current [get]
 func (h *organizationHandler) GetCurrentUserOrganization(w http.ResponseWriter, r *http.Request) {
-	userIDStr := auth.GetUserIDFromContext(r.Context())
+	userIDStr := utils.GetUserIDFromContext(r.Context())
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		utils.WriteJson(w, http.StatusUnauthorized, "Invalid User ID format", nil, err.Error())

@@ -843,4 +843,21 @@ paths:
       summary: Update an existing user
       tags:
       - Users
+  /users/current:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.JsonResponse'
+            - properties:
+                Data:
+                  $ref: '#/definitions/users.UserResponseDto'
+              type: object
+      summary: Get current user profile
+      tags:
+      - Users
 swagger: "2.0"

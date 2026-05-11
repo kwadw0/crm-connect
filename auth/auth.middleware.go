@@ -8,11 +8,6 @@ import (
 	"strings"
 )
 
-// To keep thing type-safe, we create a private key type for our context.
-type contextKey string
-
-const userIDKey contextKey = "userID"
-
 // AuthMiddleware is our "Guard" for protected routes.
 func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -41,16 +36,10 @@ func AuthMiddleware(jwtSecret []byte) func(http.Handler) http.Handler {
 			}
 
 			// 4. Inject into Context (the "Pocket")
-			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
+			ctx := context.WithValue(r.Context(), utils.UserIDKey, claims.UserID)
 			
 			// 5. Pass the request with the new context to the next handler
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-// GetUserIDFromContext is a helper for any handler to easily get the logged in User ID.
-func GetUserIDFromContext(ctx context.Context) string {
-	userID, _ := ctx.Value(userIDKey).(string)
-	return userID
 }

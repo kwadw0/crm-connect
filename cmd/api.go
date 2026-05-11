@@ -43,15 +43,7 @@ func (app *application) mount() http.Handler {
 	userService := users.NewService(repo.New(app.db))
 	userHandler := users.NewHandler(userService)
 
-	// Grouping all /users endpoints together
-	r.Route("/users", func(r chi.Router) {
-		r.Post("/", userHandler.CreateUser)
-		r.Get("/", userHandler.GetAllUsers)
-		r.Get("/{id}", userHandler.GetUserByID)
-		r.Put("/{id}", userHandler.UpdateUser)
-		r.Delete("/{id}", userHandler.DeleteUser)
-	})
-
+	// authHandler := ... (rest stays)
 	authService := auth.NewService(repo.New(app.db), []byte(app.config.jwtSecret), app.config.tokenTTL)
 	authHandler := auth.AuthHandler(authService, app.validator)
 	r.Route("/auth", func(r chi.Router) {
@@ -103,6 +95,15 @@ func (app *application) mount() http.Handler {
 			r.Post("/", channelHandler.CreateChannel)
 			r.Post("/{id}/initiate", channelHandler.InitiateConnection)
 			r.Post("/{id}/connect", channelHandler.ConnectChannel)
+		})
+
+		r.Route("/users", func(r chi.Router) {
+			r.Post("/", userHandler.CreateUser)
+			r.Get("/", userHandler.GetAllUsers)
+			r.Get("/current", userHandler.GetUserProfile)
+			r.Get("/{id}", userHandler.GetUserByID)
+			r.Put("/{id}", userHandler.UpdateUser)
+			r.Delete("/{id}", userHandler.DeleteUser)
 		})
 	})
 

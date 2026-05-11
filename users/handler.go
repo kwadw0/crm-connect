@@ -2,6 +2,7 @@ package users
 
 import (
 	"encoding/json"
+	"fmt"
 	"kwadw0/WhatsCRM/utils"
 	"net/http"
 
@@ -15,6 +16,7 @@ type Handler interface {
 	UpdateUser(w http.ResponseWriter, r *http.Request)
 	DeleteUser(w http.ResponseWriter, r *http.Request)
 	GetUserByID(w http.ResponseWriter, r *http.Request)
+	GetUserProfile(w http.ResponseWriter, r *http.Request)
 }
 
 type handler struct {
@@ -139,5 +141,30 @@ func (h *handler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	utils.WriteJson(w, http.StatusOK, "User fetched successfully", user, nil)
+}
+
+// @Summary Get current user profile
+// @Tags Users
+// @Produce json
+// @Success 200 {object} utils.JsonResponse{Data=UserResponseDto}
+// @Router /users/current [get]
+func (h *handler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	userIDStr := utils.GetUserIDFromContext(r.Context())
+	if userIDStr == "" {
+		utils.WriteJson(w, http.StatusUnauthorized, "Unauthorized", nil, "Unauthorized")
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		utils.WriteJson(w, http.StatusInternalServerError, "Internal server error", nil, "Internal server error")
+		return
+	}
+	fmt.Println(userID)
+	user, err := h.service.GetUserByID(r.Context(), userID)
+	if err != nil {
+		utils.WriteJson(w, http.StatusInternalServerError, "Failed to fetch user", nil, err.Error())
+		return
+	}
 	utils.WriteJson(w, http.StatusOK, "User fetched successfully", user, nil)
 }
