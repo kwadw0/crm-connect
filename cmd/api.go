@@ -71,6 +71,7 @@ func (app *application) mount() http.Handler {
 		app.config.metaAppID,
 		app.config.metaAppSecret,
 		app.config.metaRedirectURI,
+		"123456", // default PIN for registration
 	)
 	channelHandler := channels.NewHandler(channelService, app.validator)
 

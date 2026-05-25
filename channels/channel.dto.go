@@ -60,5 +60,7 @@ type MetaConfigResponse struct {
 }
 
 type ConnectChannelDto struct {
-	Code string `json:"code" validate:"required"`
+	Code          string `json:"code"`
+	WabaID        string `json:"waba_id"`
+	PhoneNumberID string `json:"phone_number_id"`
 }
