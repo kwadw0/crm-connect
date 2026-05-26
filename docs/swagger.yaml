@@ -73,8 +73,14 @@ definitions:
     properties:
       code:
         type: string
+      phone_number_id:
+        type: string
+      waba_id:
+        type: string
     required:
     - code
+    - phone_number_id
+    - waba_id
     type: object
   channels.CreateChannelDto:
     properties:
@@ -398,7 +404,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: OAuth Code
+      - description: OAuth Code, Waba ID, and Phone Number ID
         in: body
         name: request
         required: true

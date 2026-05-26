@@ -86,7 +86,7 @@ func (h *handler) InitiateConnection(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Param id path string true "Channel UUID"
-// @Param request body ConnectChannelDto true "OAuth Code"
+// @Param request body ConnectChannelDto true "OAuth Code, Waba ID, and Phone Number ID"
 // @Success 200 {object} utils.JsonResponse{Data=ChannelResponseDto}
 // @Router /channels/{id}/connect [post]
 func (h *handler) ConnectChannel(w http.ResponseWriter, r *http.Request) {

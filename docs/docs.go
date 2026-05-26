@@ -171,7 +171,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "OAuth Code",
+                        "description": "OAuth Code, Waba ID, and Phone Number ID",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -1067,10 +1067,18 @@ const docTemplate = `{
         "channels.ConnectChannelDto": {
             "type": "object",
             "required": [
-                "code"
+                "code",
+                "phone_number_id",
+                "waba_id"
             ],
             "properties": {
                 "code": {
+                    "type": "string"
+                },
+                "phone_number_id": {
+                    "type": "string"
+                },
+                "waba_id": {
                     "type": "string"
                 }
             }
